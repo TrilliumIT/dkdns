@@ -8,6 +8,10 @@ sudo: required
 services:
   - docker
 
+cache:
+  directories:
+    - vendor
+
 env:
   global:
     - GO15VENDOREXPERIMENT=1
