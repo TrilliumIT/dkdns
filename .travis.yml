@@ -23,7 +23,6 @@ install:
 
 script:
   - mv $GOPATH/bin/dkdns ./
-  - mv $GOPATH/bin/alpine-dkdns ./
   - md5sum dkdns > md5.txt
   - md5sum alpine-dkdns > md5.txt
   - sha256sum dkdns > sha256.txt
