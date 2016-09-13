@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-const version = "0.1"
+const version = "0.1.1"
 
 var (
 	compress         bool
@@ -42,6 +42,11 @@ func main() {
 		cli.BoolFlag{
 			Name:  "no-containername",
 			Usage: "Don't register container names.",
+		},
+		cli.StringFlag{
+			Name:  "listen",
+			Usage: "Address and port to listen on",
+			Value: ":53",
 		},
 		cli.BoolFlag{
 			Name:  "compress",
@@ -105,8 +110,8 @@ func Run(ctx *cli.Context) error {
 	log.WithField("Compress", compress).Debug("Compression set")
 
 	dns.HandleFunc(dom, handle)
-	go serve("tcp")
-	go serve("udp")
+	go serve("tcp", ctx.String("listen"))
+	go serve("udp", ctx.String("listen"))
 
 	go monDocker(ctx.StringSlice("docker-endpoint"), ctx.String("ca"), ctx.String("cert"), ctx.String("key"), !ctx.Bool("no-validate"))
 
