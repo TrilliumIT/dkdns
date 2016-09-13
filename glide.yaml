@@ -1,0 +1,12 @@
+package: github.com/TrilliumIT/dkdns
+import:
+- package: github.com/Sirupsen/logrus
+- package: github.com/clinta/docker-events
+- package: github.com/docker/docker
+  subpackages:
+  - api/types
+  - api/types/events
+  - client
+  - pkg/tlsconfig
+- package: github.com/miekg/dns
+- package: github.com/urfave/cli
