@@ -30,6 +30,7 @@ script:
   - sha256sum alpine-dkdns >> sha256.txt
   - sha512sum dkdns > sha512.txt
   - sha512sum alpine-dkdns >> sha512.txt
+  - ls -alh
 
 deploy:
   - provider: releases
