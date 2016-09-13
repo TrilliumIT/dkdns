@@ -22,7 +22,8 @@ install:
   - docker run --rm -v "$PWD":/go/src/github.com/TrilliumIT/dkdns -w /go/src/github.com/TrilliumIT/dkdns golang:alpine go build -v -o alpine-dkdns
 
 script:
-  - sudo chmod 755 alpine-dkdns
+  - sudo chown travis:travis alpine-dkdns
+  - sudo chmod 775 alpine-dkdns
   - mv $GOPATH/bin/dkdns ./
   - md5sum dkdns > md5.txt
   - md5sum alpine-dkdns >> md5.txt
