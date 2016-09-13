@@ -36,6 +36,27 @@ func main() {
 			Name:  "compress",
 			Usage: "Compress dns replies.",
 		},
+		cli.StringSliceFlag{
+			Name:  "docker-endpoint",
+			Usage: "URL to docker endpoint(s)",
+			Value: &cli.StringSlice{"unix:///var/run/docker.sock"},
+		},
+		cli.StringFlag{
+			Name:  "ca",
+			Usage: "Path to docker CA if using TLS",
+		},
+		cli.StringFlag{
+			Name:  "cert",
+			Usage: "Path to docker cert if using TLS",
+		},
+		cli.StringFlag{
+			Name:  "key",
+			Usage: "Path to docker key if using TLS",
+		},
+		cli.BoolFlag{
+			Name:  "no-validate",
+			Usage: "Don't validate ssl connections.",
+		},
 	}
 	app.Action = Run
 	err := app.Run(os.Args)
@@ -68,9 +89,14 @@ func Run(ctx *cli.Context) error {
 	go serve("tcp")
 	go serve("udp")
 
+	go monDocker(ctx.StringSlice("docker-endpoint"), ctx.String("ca"), ctx.String("cert"), ctx.String("key"), !ctx.Bool("no-validate"))
+
 	sig := make(chan os.Signal)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	s := <-sig
 	log.Infof("Signal (%s) received, stopping\n", s)
+	for _, cf := range cancelFuncs {
+		cf()
+	}
 	return nil
 }

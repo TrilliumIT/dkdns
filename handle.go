@@ -3,42 +3,83 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
+	"sync"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/miekg/dns"
 )
 
+var (
+	records    map[string][]net.IP
+	recordLock sync.RWMutex
+)
+
+func updateRecords() {
+	log.Debug("Updating records")
+	containerlock.RLock()
+	defer containerlock.RUnlock()
+	recordLock.Lock()
+	defer recordLock.Unlock()
+	records = make(map[string][]net.IP)
+	for _, cjson := range containers {
+		hn := cjson.Config.Hostname
+		hn = strings.TrimSuffix(strings.TrimRight(hn, "."), strings.TrimRight(dom, "."))
+		hn = hn + dom
+		for _, es := range cjson.NetworkSettings.Networks {
+			records[hn] = append(records[hn], net.ParseIP(es.IPAddress))
+		}
+	}
+	log.WithField("Records", len(records)).Debug("Records updated")
+}
+
 func handle(w dns.ResponseWriter, r *dns.Msg) {
 	log.WithField("Message", r).Debug("Handling DNS Request")
-	var (
-		rr  dns.RR
-		str string
-	)
 	m := new(dns.Msg)
 	m.SetReply(r)
 	m.Compress = compress
 
-	name := r.Question[0].Name
-
-	rr = &dns.A{
-		Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0},
-		A:   net.ParseIP("192.168.5.5"),
-	}
-
-	str = "bleh"
-
-	t := &dns.TXT{
-		Hdr: dns.RR_Header{Name: dom, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0},
-		Txt: []string{str},
-	}
-
-	switch r.Question[0].Qtype {
-	case dns.TypeTXT:
-		m.Answer = append(m.Answer, t)
-		m.Extra = append(m.Extra, rr)
-	case dns.TypeAAAA, dns.TypeA:
-		m.Answer = append(m.Answer, rr)
-		m.Extra = append(m.Extra, t)
+	for _, q := range r.Question {
+		if q.Qtype != dns.TypeA || q.Qtype != dns.TypeAAAA {
+			continue
+		}
+		func() {
+			recordLock.RLock()
+			defer recordLock.RUnlock()
+			for _, ip := range records[q.Name] {
+				if ip.To4() == nil {
+					rr := &dns.AAAA{
+						Hdr: dns.RR_Header{
+							Name:   q.Name,
+							Rrtype: dns.TypeAAAA,
+							Class:  dns.ClassINET,
+							Ttl:    0,
+						},
+						AAAA: ip,
+					}
+					if q.Qtype == dns.TypeAAAA {
+						m.Answer = append(m.Answer, rr)
+					} else {
+						m.Extra = append(m.Extra, rr)
+					}
+				} else {
+					rr := &dns.A{
+						Hdr: dns.RR_Header{
+							Name:   q.Name,
+							Rrtype: dns.TypeA,
+							Class:  dns.ClassINET,
+							Ttl:    0,
+						},
+						A: ip,
+					}
+					if q.Qtype == dns.TypeA {
+						m.Answer = append(m.Answer, rr)
+					} else {
+						m.Extra = append(m.Extra, rr)
+					}
+				}
+			}
+		}()
 	}
 
 	log.WithField("Response", m).Debug("Sending DNS Response")
