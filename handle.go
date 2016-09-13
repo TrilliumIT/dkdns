@@ -30,9 +30,11 @@ func updateRecords() {
 		for _, es := range cjson.NetworkSettings.Networks {
 			if es.IPAddress != "" {
 				ip := net.ParseIP(es.IPAddress)
-				for _, l := range strings.Split(cjson.Config.Labels[aLabel], ",") {
-					ln := normalizeName(l)
-					records[ln] = append(records[ln], ip)
+				if al, ok := cjson.Config.Labels[aLabel]; ok {
+					for _, l := range strings.Split(al, ",") {
+						ln := normalizeName(l)
+						records[ln] = append(records[ln], ip)
+					}
 				}
 				if regHostName {
 					hn := normalizeName(cjson.Config.Hostname)
