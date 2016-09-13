@@ -13,8 +13,11 @@ import (
 const version = "0.1"
 
 var (
-	compress bool
-	dom      string
+	compress         bool
+	dom              string
+	regContainerName bool
+	regHostName      bool
+	ttl              uint32
 )
 
 func main() {
@@ -33,8 +36,21 @@ func main() {
 			Usage: "Top level domain to serve.",
 		},
 		cli.BoolFlag{
+			Name:  "no-hostname",
+			Usage: "Don't register container hostnames.",
+		},
+		cli.BoolFlag{
+			Name:  "no-containername",
+			Usage: "Don't register container names.",
+		},
+		cli.BoolFlag{
 			Name:  "compress",
 			Usage: "Compress dns replies.",
+		},
+		cli.UintFlag{
+			Name:  "ttl",
+			Usage: "TTL for dns replies.",
+			Value: 5,
 		},
 		cli.StringSliceFlag{
 			Name:  "docker-endpoint",
@@ -81,6 +97,9 @@ func Run(ctx *cli.Context) error {
 
 	compress = ctx.Bool("compress")
 	dom = ctx.String("domain")
+	regContainerName = !ctx.Bool("no-containername")
+	regHostName = !ctx.Bool("no-hostname")
+	ttl = uint32(ctx.Uint("ttl"))
 
 	log.WithField("Domain", dom).Debug("Domain set")
 	log.WithField("Compress", compress).Debug("Compression set")

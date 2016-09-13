@@ -15,6 +15,8 @@ var (
 	recordLock sync.RWMutex
 )
 
+const aLabel = "DKDNS_A"
+
 func updateRecords() {
 	log.Debug("Updating records")
 	containerlock.RLock()
@@ -25,17 +27,32 @@ func updateRecords() {
 		delete(records, k)
 	}
 	for _, cjson := range containers {
-		hn := cjson.Config.Hostname
-		hn = strings.TrimSuffix(strings.TrimSuffix(hn, "."), strings.TrimSuffix(dom, "."))
-		hn = hn + "." + dom
-		hn = strings.ToLower(hn)
 		for _, es := range cjson.NetworkSettings.Networks {
 			if es.IPAddress != "" {
-				records[hn] = append(records[hn], net.ParseIP(es.IPAddress))
+				ip := net.ParseIP(es.IPAddress)
+				for _, l := range strings.Split(cjson.Config.Labels[aLabel], ",") {
+					ln := normalizeName(l)
+					records[ln] = append(records[ln], ip)
+				}
+				if regHostName {
+					hn := normalizeName(cjson.Config.Hostname)
+					records[hn] = append(records[hn], ip)
+				}
+				if regContainerName {
+					cn := normalizeName(cjson.Name)
+					records[cn] = append(records[cn], ip)
+				}
 			}
 		}
 	}
 	log.WithField("Records", records).Debug("Records updated")
+}
+
+func normalizeName(n string) string {
+	n = strings.TrimSuffix(strings.TrimSuffix(n, "."), strings.TrimSuffix(dom, "."))
+	n = n + "." + dom
+	n = strings.ToLower(n)
+	return n
 }
 
 func handle(w dns.ResponseWriter, r *dns.Msg) {
@@ -59,7 +76,7 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 						Name:   q.Name,
 						Rrtype: dns.TypeAAAA,
 						Class:  dns.ClassINET,
-						Ttl:    0,
+						Ttl:    ttl,
 					},
 					AAAA: ip,
 				}
@@ -76,7 +93,7 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 					Name:   q.Name,
 					Rrtype: dns.TypeA,
 					Class:  dns.ClassINET,
-					Ttl:    0,
+					Ttl:    ttl,
 				},
 				A: ip,
 			}
