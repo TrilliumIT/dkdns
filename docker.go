@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -16,7 +17,17 @@ import (
 
 const dockerVersion = "v1.23"
 
+var (
+	cancelFuncs   []func()
+	containers    map[string]dockertypes.ContainerJSON
+	containerlock sync.RWMutex
+)
+
 func monDocker(dockerEndpoints []string, ca, cert, key string, verify bool) {
+	cancelFuncs = make([]func(), len(dockerEndpoints))
+	containers = make(map[string]dockertypes.ContainerJSON)
+	records = make(map[string][]net.IP)
+
 	for _, e := range dockerEndpoints {
 		log.WithField("Docker Endpoint", e).Debug("Starting docker monitor")
 		var (
@@ -43,12 +54,6 @@ func monDocker(dockerEndpoints []string, ca, cert, key string, verify bool) {
 		go dockerWatch(dockerClient, ctx)
 	}
 }
-
-var (
-	cancelFuncs   []func()
-	containers    map[string]dockertypes.ContainerJSON
-	containerlock sync.RWMutex
-)
 
 func dockerWatch(dockerClient *dockerclient.Client, ctx context.Context) {
 	dockerEventErr := events.Monitor(ctx, dockerClient, dockertypes.EventsOptions{}, func(event dockerevents.Message) {
