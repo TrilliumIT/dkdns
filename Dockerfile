@@ -1,8 +1,8 @@
 FROM alpine
 
-ADD https://trilliumstaffing.com/gh-latest/repo/TrilliumIT/dkdns/dkdns /
-RUN chmod +x dkdns
+ADD https://trilliumstaffing.com/gh-latest/repo/TrilliumIT/dkdns/alpine-dkdns /
+RUN chmod +x alpine-dkdns
 
 EXPOSE 53
 
-ENTRYPOINT ["/dkdns"]
+ENTRYPOINT ["/alpine-dkdns"]
