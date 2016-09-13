@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -114,6 +113,6 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 func serve(proto, listen string) {
 	server := &dns.Server{Addr: listen, Net: proto, TsigSecret: nil}
 	if err := server.ListenAndServe(); err != nil {
-		fmt.Printf("Failed to setup the "+proto+" server: %s\n", err.Error())
+		log.WithError(err).Error("Failed to serve DNS")
 	}
 }

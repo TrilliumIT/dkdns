@@ -60,7 +60,6 @@ func main() {
 		cli.StringSliceFlag{
 			Name:  "docker-endpoint",
 			Usage: "URL to docker endpoint(s)",
-			Value: &cli.StringSlice{"unix:///var/run/docker.sock"},
 		},
 		cli.StringFlag{
 			Name:  "ca",
@@ -113,7 +112,12 @@ func Run(ctx *cli.Context) error {
 	go serve("tcp", ctx.String("listen"))
 	go serve("udp", ctx.String("listen"))
 
-	go monDocker(ctx.StringSlice("docker-endpoint"), ctx.String("ca"), ctx.String("cert"), ctx.String("key"), !ctx.Bool("no-validate"))
+	endpoints := ctx.StringSlice("docker-endpoint")
+	if len(endpoints) == 0 {
+		endpoints = []string{"unix:///var/run/docker.sock"}
+	}
+
+	go monDocker(endpoints, ctx.String("ca"), ctx.String("cert"), ctx.String("key"), !ctx.Bool("no-validate"))
 
 	sig := make(chan os.Signal)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
