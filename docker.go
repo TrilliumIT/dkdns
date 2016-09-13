@@ -18,13 +18,11 @@ import (
 const dockerVersion = "v1.23"
 
 var (
-	cancelFuncs   []context.CancelFunc
 	containers    map[string]dockertypes.ContainerJSON
 	containerlock sync.RWMutex
 )
 
 func monDocker(dockerEndpoints []string, ca, cert, key string, verify bool) {
-	cancelFuncs = make([]context.CancelFunc, len(dockerEndpoints))
 	containers = make(map[string]dockertypes.ContainerJSON)
 	records = make(map[string][]net.IP)
 
@@ -49,9 +47,23 @@ func monDocker(dockerEndpoints []string, ca, cert, key string, verify bool) {
 			log.WithError(err).Error("Error connecting to docker socket")
 			continue
 		}
-		ctx, ctxDone := context.WithCancel(context.Background())
-		cancelFuncs = append(cancelFuncs, ctxDone)
-		go dockerWatch(dockerClient, ctx)
+		go dockerWatch(dockerClient, context.Background())
+		// on startup populate containers
+		dockerContainers, err := dockerClient.ContainerList(context.Background(), dockertypes.ContainerListOptions{})
+		if err != nil {
+			log.WithError(err).Error("Error getting container list")
+			continue
+		}
+		containerlock.Lock()
+		for _, dc := range dockerContainers {
+			cjson, err := dockerClient.ContainerInspect(context.Background(), dc.ID)
+			if err != nil {
+				log.WithError(err).WithField("Container ID", dc.ID).Error("Error inspecting container")
+			}
+			containers[dc.ID] = cjson
+		}
+		containerlock.Unlock()
+		go updateRecords()
 	}
 }
 
