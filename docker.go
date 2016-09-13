@@ -18,13 +18,13 @@ import (
 const dockerVersion = "v1.23"
 
 var (
-	cancelFuncs   []func()
+	cancelFuncs   []context.CancelFunc
 	containers    map[string]dockertypes.ContainerJSON
 	containerlock sync.RWMutex
 )
 
 func monDocker(dockerEndpoints []string, ca, cert, key string, verify bool) {
-	cancelFuncs = make([]func(), len(dockerEndpoints))
+	cancelFuncs = make([]context.CancelFunc, len(dockerEndpoints))
 	containers = make(map[string]dockertypes.ContainerJSON)
 	records = make(map[string][]net.IP)
 

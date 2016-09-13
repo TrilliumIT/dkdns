@@ -95,8 +95,5 @@ func Run(ctx *cli.Context) error {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	s := <-sig
 	log.Infof("Signal (%s) received, stopping\n", s)
-	for _, cf := range cancelFuncs {
-		cf()
-	}
 	return nil
 }
