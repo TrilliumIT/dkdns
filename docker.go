@@ -26,6 +26,7 @@ var (
 func monDocker(dockerEndpoints []string, ca, cert, key string, verify bool) {
 	containers = make(map[string]dockertypes.ContainerJSON)
 	records = make(map[string][]net.IP)
+	rev_records = make(map[string]string)
 
 	for _, e := range dockerEndpoints {
 		log.WithField("Docker Endpoint", e).Debug("Starting docker monitor")

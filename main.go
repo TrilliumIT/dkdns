@@ -11,7 +11,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-const version = "0.2.3"
+const version = "0.3"
 
 var (
 	compress         bool
@@ -109,7 +109,7 @@ func Run(ctx *cli.Context) error {
 	log.WithField("Domain", dom).Debug("Domain set")
 	log.WithField("Compress", compress).Debug("Compression set")
 
-	dns.HandleFunc(dom, handle)
+	dns.HandleFunc(".", handle)
 	go serve("tcp", ctx.String("listen"))
 	go serve("udp", ctx.String("listen"))
 

@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	records    map[string][]net.IP
-	recordLock sync.RWMutex
+	records     map[string][]net.IP
+	recordLock  sync.RWMutex
+	rev_records map[string]string
 )
 
 const aLabel = "DKDNS_A"
@@ -30,24 +31,36 @@ func updateRecords() {
 		for _, es := range cjson.NetworkSettings.Networks {
 			if es.IPAddress != "" {
 				ip := net.ParseIP(es.IPAddress)
+				var rev string
 				if al, ok := cjson.Config.Labels[aLabel]; ok {
 					for _, l := range strings.Split(al, ",") {
 						ln := fullyQualify(l)
 						records[ln] = append(records[ln], ip)
+						rev = ln
 					}
-				}
-				if regHostName {
-					hn := fullyQualify(cjson.Config.Hostname)
-					records[hn] = append(records[hn], ip)
 				}
 				if regContainerName {
 					cn := fullyQualify(cjson.Name)
 					records[cn] = append(records[cn], ip)
+					rev = cn
+				}
+				if regHostName {
+					hn := fullyQualify(cjson.Config.Hostname)
+					records[hn] = append(records[hn], ip)
+					rev = hn
+				}
+				if rev != "" {
+					rev_ip, err := dns.ReverseAddr(ip.String())
+					if err != nil {
+						log.WithError(err).WithField("IP", ip.String()).Error("Error reversing ip for reverse dns")
+					}
+					rev_records[rev_ip] = rev
 				}
 			}
 		}
 	}
 	log.WithField("Records", records).Debug("Records updated")
+	log.WithField("Reverse", rev_records).Debug("Records updated")
 }
 
 var (
@@ -84,6 +97,22 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 	recordLock.RLock()
 	defer recordLock.RUnlock()
 	for _, q := range r.Question {
+		if q.Qtype == dns.TypePTR {
+			if rev, ok := rev_records[q.Name]; ok {
+				log.Debug("Reverse DNS Response")
+				rr := &dns.PTR{
+					Hdr: dns.RR_Header{
+						Name:   q.Name,
+						Rrtype: dns.TypePTR,
+						Class:  dns.ClassINET,
+						Ttl:    ttl,
+					},
+					Ptr: rev,
+				}
+				m.Answer = append(m.Answer, rr)
+			}
+			continue
+		}
 		if q.Qtype != dns.TypeA && q.Qtype != dns.TypeAAAA {
 			continue
 		}
