@@ -57,7 +57,7 @@ var (
 
 func fullyQualify(n string) string {
 	n = normalizeName(n)
-	n = strings.TrimSuffix(strings.TrimSuffix(n, "."), strings.TrimSuffix(dom, "."))
+	n = strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(n, "."), strings.TrimSuffix(dom, ".")), ".")
 	n = n + "." + dom
 	return n
 }
