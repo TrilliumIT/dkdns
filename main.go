@@ -11,7 +11,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-const version = "0.2"
+const version = "0.2.1"
 
 var (
 	compress         bool
@@ -101,7 +101,7 @@ func Run(ctx *cli.Context) error {
 	log.WithField("Level", log.GetLevel()).Info("Log level set")
 
 	compress = ctx.Bool("compress")
-	dom = strings.TrimSuffix(ctx.String("domain"), ".") + "."
+	dom = strings.TrimSuffix(normalizeName(ctx.String("domain")), ".") + "."
 	regContainerName = !ctx.Bool("no-containername")
 	regHostName = !ctx.Bool("no-hostname")
 	ttl = uint32(ctx.Uint("ttl"))

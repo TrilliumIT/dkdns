@@ -2,6 +2,7 @@ package main
 
 import (
 	"net"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -31,16 +32,16 @@ func updateRecords() {
 				ip := net.ParseIP(es.IPAddress)
 				if al, ok := cjson.Config.Labels[aLabel]; ok {
 					for _, l := range strings.Split(al, ",") {
-						ln := normalizeName(l)
+						ln := fullyQualify(l)
 						records[ln] = append(records[ln], ip)
 					}
 				}
 				if regHostName {
-					hn := normalizeName(cjson.Config.Hostname)
+					hn := fullyQualify(cjson.Config.Hostname)
 					records[hn] = append(records[hn], ip)
 				}
 				if regContainerName {
-					cn := normalizeName(cjson.Name)
+					cn := fullyQualify(cjson.Name)
 					records[cn] = append(records[cn], ip)
 				}
 			}
@@ -49,10 +50,29 @@ func updateRecords() {
 	log.WithField("Records", records).Debug("Records updated")
 }
 
-func normalizeName(n string) string {
+var (
+	leftNotaz09  *regexp.Regexp
+	onlyaz09Dash *regexp.Regexp
+)
+
+func fullyQualify(n string) string {
+	n = normalizeName(n)
 	n = strings.TrimSuffix(strings.TrimSuffix(n, "."), strings.TrimSuffix(dom, "."))
 	n = n + "." + dom
+	return n
+}
+
+func normalizeName(n string) string {
+	if leftNotaz09 == nil {
+		leftNotaz09 = regexp.MustCompile("^[^a-z0-9]+")
+	}
+	if onlyaz09Dash == nil {
+		onlyaz09Dash = regexp.MustCompile("[^a-z0-9\\-\\.]+")
+	}
+	n = n[0:252]
 	n = strings.ToLower(n)
+	n = string(leftNotaz09.ReplaceAllLiteral([]byte(n), []byte{}))
+	n = string(onlyaz09Dash.ReplaceAllLiteral([]byte(n), []byte{}))
 	return n
 }
 
