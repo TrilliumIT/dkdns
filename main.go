@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
@@ -100,7 +101,7 @@ func Run(ctx *cli.Context) error {
 	log.WithField("Level", log.GetLevel()).Info("Log level set")
 
 	compress = ctx.Bool("compress")
-	dom = ctx.String("domain")
+	dom = strings.TrimSuffix(ctx.String("domain"), ".") + "."
 	regContainerName = !ctx.Bool("no-containername")
 	regHostName = !ctx.Bool("no-hostname")
 	ttl = uint32(ctx.Uint("ttl"))
