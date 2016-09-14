@@ -69,7 +69,6 @@ func normalizeName(n string) string {
 	if onlyaz09Dash == nil {
 		onlyaz09Dash = regexp.MustCompile("[^a-z0-9\\-\\.]+")
 	}
-	n = n[0:252]
 	n = strings.ToLower(n)
 	n = string(leftNotaz09.ReplaceAllLiteral([]byte(n), []byte{}))
 	n = string(onlyaz09Dash.ReplaceAllLiteral([]byte(n), []byte{}))
