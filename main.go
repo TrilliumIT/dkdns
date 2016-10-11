@@ -31,6 +31,11 @@ func main() {
 			Name:  "debug, d",
 			Usage: "Enable debugging.",
 		},
+		cli.IntFlag{
+			Name:  "resync, r",
+			Value: 0,
+			Usage: "Periodically resync all containers from docker hosts.",
+		},
 		cli.StringFlag{
 			Name:  "domain, dom",
 			Value: "dkdns.",
@@ -118,7 +123,7 @@ func Run(ctx *cli.Context) error {
 		endpoints = []string{"unix:///var/run/docker.sock"}
 	}
 
-	go monDocker(endpoints, ctx.String("ca"), ctx.String("cert"), ctx.String("key"), !ctx.Bool("no-validate"))
+	go monDocker(endpoints, ctx.String("ca"), ctx.String("cert"), ctx.String("key"), !ctx.Bool("no-validate"), ctx.Int("resync"))
 
 	sig := make(chan os.Signal)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)

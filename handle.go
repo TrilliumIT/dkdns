@@ -27,7 +27,8 @@ func updateRecords() {
 	for k := range records {
 		delete(records, k)
 	}
-	for _, cjson := range containers {
+	for _, cdata := range containers {
+		cjson := cdata.Cjson
 		for _, es := range cjson.NetworkSettings.Networks {
 			if es.IPAddress != "" {
 				ip := net.ParseIP(es.IPAddress)
