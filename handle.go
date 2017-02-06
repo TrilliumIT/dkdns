@@ -18,6 +18,15 @@ var (
 
 const aLabel = "DKDNS_A"
 
+func appendIfMissing(s []net.IP, i net.IP) []net.IP {
+	for _, e := range s {
+		if e.Equal(i) {
+			return s
+		}
+	}
+	return append(s, i)
+}
+
 func updateRecords() {
 	log.Debug("Updating records")
 	containerlock.RLock()
@@ -36,18 +45,18 @@ func updateRecords() {
 				if al, ok := cjson.Config.Labels[aLabel]; ok {
 					for _, l := range strings.Split(al, ",") {
 						ln := fullyQualify(l)
-						records[ln] = append(records[ln], ip)
+						records[ln] = appendIfMissing(records[ln], ip)
 						rev = ln
 					}
 				}
 				if regContainerName {
 					cn := fullyQualify(cjson.Name)
-					records[cn] = append(records[cn], ip)
+					records[cn] = appendIfMissing(records[cn], ip)
 					rev = cn
 				}
 				if regHostName {
 					hn := fullyQualify(cjson.Config.Hostname)
-					records[hn] = append(records[hn], ip)
+					records[hn] = appendIfMissing(records[hn], ip)
 					rev = hn
 				}
 				if rev != "" {

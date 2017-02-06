@@ -1,0 +1,8 @@
+FROM alpine
+
+ADD alpine-dkdns /
+RUN chmod +x alpine-dkdns
+
+EXPOSE 53
+
+ENTRYPOINT ["/alpine-dkdns"]
