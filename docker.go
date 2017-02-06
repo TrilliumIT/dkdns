@@ -9,11 +9,9 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/clinta/docker-events"
 	dockertypes "github.com/docker/docker/api/types"
-	dockerevents "github.com/docker/docker/api/types/events"
 	dockerclient "github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/tlsconfig"
+	"github.com/docker/go-connections/tlsconfig"
 )
 
 const dockerVersion = "v1.23"
@@ -112,32 +110,34 @@ func dockerWatch(dockerClient *dockerclient.Client, resync int) {
 		}
 
 		// Start monitoring docker events
-		dockerEventErr := events.Monitor(cxt, dockerClient, dockertypes.EventsOptions{}, func(event dockerevents.Message) {
-			if event.Type != "network" {
-				return
-			}
-			cid, ok := event.Actor.Attributes["container"]
-			if !ok {
-				//we don't need to go any further because this event does not involve a container
-				return
-			}
-			if event.Action != "connect" && event.Action != "disconnect" {
-				// Only change dns on network events
-				return
-			}
-			log.WithField("Container", cid).Debug("Docker network event recieved")
+		dockerEvent, dockerEventErr := dockerClient.Events(cxt, dockertypes.EventsOptions{})
+		go func() {
+			for event := range dockerEvent {
+				if event.Type != "network" {
+					continue
+				}
+				cid, ok := event.Actor.Attributes["container"]
+				if !ok {
+					//we don't need to go any further because this event does not involve a container
+					continue
+				}
+				if event.Action != "connect" && event.Action != "disconnect" {
+					// Only change dns on network events
+					continue
+				}
+				log.WithField("Container", cid).Debug("Docker network event recieved")
 
-			// now we need to inspect and update all the IP information associated with this container
-			cjson, err := dockerClient.ContainerInspect(context.Background(), cid)
-			if err != nil {
-				log.WithError(err).WithField("Container ID", cid).Error("Error inspecting container")
+				// now we need to inspect and update all the IP information associated with this container
+				cjson, err := dockerClient.ContainerInspect(context.Background(), cid)
+				if err != nil {
+					log.WithError(err).WithField("Container ID", cid).Error("Error inspecting container")
+				}
+				containerlock.Lock()
+				defer containerlock.Unlock()
+				containers[cid] = containerData{Cjson: cjson, DockerHostID: hostID}
+				go updateRecords()
 			}
-			containerlock.Lock()
-			defer containerlock.Unlock()
-			containers[cid] = containerData{Cjson: cjson, DockerHostID: hostID}
-			go updateRecords()
-			return
-		})
+		}()
 
 		endResync := make(chan struct{})
 		if resync != 0 {

@@ -1,21 +1,20 @@
-hash: 512d51000b209f6af213d09318a457c47cd5ed9f090f421ca6dbbbb3ded8173f
-updated: 2016-09-13T14:35:08.708999904-04:00
+hash: eedb738e6a85084097d2ee9195eb6ce0b0fcc7ef9e237fc2449e933d48896e72
+updated: 2017-02-06T16:05:54.447531155-05:00
 imports:
-- name: github.com/clinta/docker-events
-  version: 01ae9bbe70fb92dc272f21d309cfe13084c157df
 - name: github.com/docker/distribution
-  version: 17fb0bb6b30838f3f80833c6522cb374549663ce
+  version: fb0bebc4b64e3881cc52a2478d749845ed76d2a8
   subpackages:
-  - digest
+  - digestset
   - reference
 - name: github.com/docker/docker
-  version: 711455d34eb082ad11de1da2e2952dee017175ab
+  version: dc15fe8a34df42a97d20b26338dc5ef13897c9fa
   subpackages:
   - api/types
   - api/types/blkiodev
   - api/types/container
   - api/types/events
   - api/types/filters
+  - api/types/image
   - api/types/mount
   - api/types/network
   - api/types/reference
@@ -24,39 +23,37 @@ imports:
   - api/types/swarm
   - api/types/time
   - api/types/versions
+  - api/types/volume
   - client
-  - client/transport
-  - client/transport/cancellable
   - pkg/tlsconfig
 - name: github.com/docker/go-connections
-  version: 0bad1a3951398f88ef4dd75fdb42af374430be89
+  version: 7da10c8c50cad14494ec818dcdfb6506265c0086
   subpackages:
   - nat
   - sockets
   - tlsconfig
 - name: github.com/docker/go-units
-  version: f2145db703495b2e525c59662db69a7344b00bb8
+  version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
 - name: github.com/Microsoft/go-winio
-  version: ce2922f643c8fd76b46cadc7f404a06282678b34
+  version: fff283ad5116362ca252298cfc9b95828956d85d
 - name: github.com/miekg/dns
-  version: db96a2b759cdef4f11a34506a42eb8d1290c598e
-- name: github.com/opencontainers/runc
-  version: c520720728515d546d8debe937ff489abf718b79
-  subpackages:
-  - libcontainer/user
+  version: f3c59acd3d12e2d713a4d2abce86cd44affee185
+- name: github.com/opencontainers/go-digest
+  version: aa2ec055abd10d26d539eb630a92241b781ce4bc
 - name: github.com/pkg/errors
-  version: 17b591df37844cde689f4d5813e5cea0927d8dd2
+  version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
 - name: github.com/Sirupsen/logrus
-  version: 08a8a7c27e3d058a8989316a850daad1c10bf4ab
+  version: 61e43dc76f7ee59a82bdf3d71033dc12bea4c77d
 - name: github.com/urfave/cli
-  version: 168c95418e66e019fe17b8f4f5c45aa62ff80e23
+  version: 347a9884a87374d000eec7e6445a34487c1f4a2b
 - name: golang.org/x/net
-  version: 07b51741c1d6423d4a6abab1c49940ec09cb1aaf
+  version: 236b8f043b920452504e263bc21d354427127473
   subpackages:
   - context
+  - context/ctxhttp
   - proxy
 - name: golang.org/x/sys
-  version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
+  version: 7a6e5648d140666db5d920909e082ca00a87ba2c
   subpackages:
   - unix
   - windows

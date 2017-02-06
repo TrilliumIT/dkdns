@@ -11,7 +11,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-const version = "0.4.1"
+const version = "0.4.2"
 
 var (
 	compress         bool
