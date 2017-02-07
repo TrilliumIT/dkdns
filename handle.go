@@ -69,8 +69,8 @@ func updateRecords() {
 			}
 		}
 	}
-	log.WithField("Records", records).Debug("Records updated")
-	log.WithField("Reverse", rev_records).Debug("Records updated")
+	//log.WithField("Records", records).Debug("Records updated")
+	//log.WithField("Reverse", rev_records).Debug("Records updated")
 }
 
 var (
@@ -99,7 +99,7 @@ func normalizeName(n string) string {
 }
 
 func handle(w dns.ResponseWriter, r *dns.Msg) {
-	log.WithField("Message", r).Debug("Handling DNS Request")
+	//log.WithField("Message", r).Debug("Handling DNS Request")
 	m := new(dns.Msg)
 	m.SetReply(r)
 	m.Compress = compress
@@ -109,7 +109,7 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 	for _, q := range r.Question {
 		if q.Qtype == dns.TypePTR {
 			if rev, ok := rev_records[q.Name]; ok {
-				log.Debug("Reverse DNS Response")
+				//log.Debug("Reverse DNS Response")
 				rr := &dns.PTR{
 					Hdr: dns.RR_Header{
 						Name:   q.Name,
@@ -127,9 +127,9 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 			continue
 		}
 		for _, ip := range records[strings.ToLower(q.Name)] {
-			log.WithField("IP", ip).Debug("Preparing response")
+			//log.WithField("IP", ip).Debug("Preparing response")
 			if ip.To4() == nil {
-				log.Debug("IPv6 Response")
+				//log.Debug("IPv6 Response")
 				rr := &dns.AAAA{
 					Hdr: dns.RR_Header{
 						Name:   q.Name,
@@ -146,7 +146,7 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 				}
 				continue
 			}
-			log.Debug("IPv4 Response")
+			//log.Debug("IPv4 Response")
 			rr := &dns.A{
 				Hdr: dns.RR_Header{
 					Name:   q.Name,
@@ -164,7 +164,7 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 		}
 	}
 
-	log.WithField("Response", m).Debug("Sending DNS Response")
+	//log.WithField("Response", m).Debug("Sending DNS Response")
 	w.WriteMsg(m)
 }
 
