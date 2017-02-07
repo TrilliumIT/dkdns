@@ -22,8 +22,47 @@ var (
 )
 
 type containerData struct {
-	Cjson        dockertypes.ContainerJSON
+	Cjson        *dockertypes.ContainerJSON
 	DockerHostID string
+}
+
+func cJsonEqual(a, b *dockertypes.ContainerJSON) bool {
+	if (a == nil) && (b == nil) {
+		return true
+	}
+	if (a == nil) != (b == nil) {
+		return false
+	}
+	if a.Name != b.Name {
+		return false
+	}
+	if a.Config.Hostname != b.Config.Hostname {
+		return false
+	}
+	if a.Config.Labels[aLabel] != b.Config.Labels[aLabel] {
+		return false
+	}
+	if (a.NetworkSettings == nil) && (b.NetworkSettings == nil) {
+		return true
+	}
+	if (a.NetworkSettings == nil) != (b.NetworkSettings == nil) {
+		return false
+	}
+	if len(a.NetworkSettings.Networks) != len(b.NetworkSettings.Networks) {
+		return false
+	}
+	for n := range a.NetworkSettings.Networks {
+		if (a.NetworkSettings.Networks[n] == nil) && (b.NetworkSettings.Networks[n] == nil) {
+			continue
+		}
+		if (a.NetworkSettings.Networks[n] == nil) != (b.NetworkSettings.Networks[n] == nil) {
+			return false
+		}
+		if a.NetworkSettings.Networks[n].IPAddress != b.NetworkSettings.Networks[n].IPAddress {
+			return false
+		}
+	}
+	return true
 }
 
 func monDocker(dockerEndpoints []string, ca, cert, key string, verify bool, resync int) {
@@ -54,19 +93,24 @@ func monDocker(dockerEndpoints []string, ca, cert, key string, verify bool, resy
 	}
 }
 
-func syncAllContainers(dockerClient *dockerclient.Client, cxt context.Context, hostID string) error {
+func syncAllContainers(dockerClient *dockerclient.Client, cxt context.Context, hostID string) (bool, error) {
+	changes := false
 	dockerContainers, err := dockerClient.ContainerList(cxt, dockertypes.ContainerListOptions{})
 	if err != nil {
-		return err
+		return true, err
 	}
 	containerlock.Lock()
+	defer containerlock.Unlock()
 	for _, dc := range dockerContainers {
 		cjson, err := dockerClient.ContainerInspect(context.Background(), dc.ID)
 		if err != nil {
 			log.WithError(err).WithField("Container ID", dc.ID).Error("Error inspecting container")
 			continue
 		}
-		containers[dc.ID] = containerData{Cjson: cjson, DockerHostID: hostID}
+		if !changes {
+			changes = !cJsonEqual(containers[dc.ID].Cjson, &cjson)
+		}
+		containers[dc.ID] = containerData{Cjson: &cjson, DockerHostID: hostID}
 	}
 	for id, c := range containers {
 		if c.DockerHostID != hostID {
@@ -80,12 +124,12 @@ func syncAllContainers(dockerClient *dockerclient.Client, cxt context.Context, h
 			}
 		}
 		if !r {
+			changes = true
 			delete(containers, id)
 		}
 	}
-	containerlock.Unlock()
 	go updateRecords()
-	return nil
+	return changes, nil
 }
 
 func dockerWatch(dockerClient *dockerclient.Client, resync int) {
@@ -101,7 +145,7 @@ func dockerWatch(dockerClient *dockerclient.Client, resync int) {
 		}
 		hostID := dockerInfo.ID
 		// on startup populate containers
-		err = syncAllContainers(dockerClient, cxt, hostID)
+		_, err = syncAllContainers(dockerClient, cxt, hostID)
 		if err != nil {
 			log.WithError(err).Error("Error syncing all containers")
 			cancel()
@@ -111,8 +155,10 @@ func dockerWatch(dockerClient *dockerclient.Client, resync int) {
 
 		// Start monitoring docker events
 		dockerEvent, dockerEventErr := dockerClient.Events(cxt, dockertypes.EventsOptions{})
+		t := time.NewTimer(time.Duration(resync) * time.Second)
 		go func() {
 			for event := range dockerEvent {
+				t.Reset(time.Duration(resync) * time.Second)
 				if event.Type != "network" {
 					continue
 				}
@@ -128,13 +174,25 @@ func dockerWatch(dockerClient *dockerclient.Client, resync int) {
 				log.WithField("Container", cid).Debug("Docker network event recieved")
 
 				// now we need to inspect and update all the IP information associated with this container
+				r := false
 				cjson, err := dockerClient.ContainerInspect(context.Background(), cid)
 				if err != nil {
 					log.WithError(err).WithField("Container ID", cid).Error("Error inspecting container")
+					r = true
+				}
+				if !r && cjson.NetworkSettings == nil {
+					r = true
+				}
+				if !r && len(cjson.NetworkSettings.Networks) == 0 {
+					r = true
 				}
 				containerlock.Lock()
-				defer containerlock.Unlock()
-				containers[cid] = containerData{Cjson: cjson, DockerHostID: hostID}
+				if r {
+					delete(containers, cid)
+				} else {
+					containers[cid] = containerData{Cjson: &cjson, DockerHostID: hostID}
+				}
+				containerlock.Unlock()
 				go updateRecords()
 			}
 		}()
@@ -142,14 +200,21 @@ func dockerWatch(dockerClient *dockerclient.Client, resync int) {
 		endResync := make(chan struct{})
 		if resync != 0 {
 			go func() {
-				t := time.NewTicker(time.Duration(resync) * time.Second)
 				for {
-					err = syncAllContainers(dockerClient, cxt, hostID)
+					changes, err := syncAllContainers(dockerClient, cxt, hostID)
 					if err != nil {
 						log.WithError(err).Error("Error syncing all containers")
+						cancel()
+						return
+					}
+					if changes {
+						log.Error("Resync caused changes, reconnecting to events")
+						cancel()
+						return
 					}
 					select {
 					case <-t.C:
+						t.Reset(time.Duration(resync) * time.Second)
 						continue
 					case <-endResync:
 						t.Stop()
@@ -161,7 +226,9 @@ func dockerWatch(dockerClient *dockerclient.Client, resync int) {
 
 		// wait for an error from the monitoring, if we get one. Log and start over.
 		err = <-dockerEventErr
-		log.WithError(err).Error("Error from docker event subscription")
+		if err != nil {
+			log.WithError(err).Error("Error from docker event subscription")
+		}
 		close(endResync)
 		cancel()
 		// cleanup containers
