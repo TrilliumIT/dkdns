@@ -50,7 +50,7 @@ deploy:
       - sha512.txt
     on:
       tags: true
-      condition: "$TRAVIS_TAG =~ ^v[0-9\.]+$"
+      condition: ${TRAVIS_TAG} =~ ^v[0-9\.]+$
   - provider: releases
     prerelease: true
     skip_cleanup: true
@@ -64,7 +64,7 @@ deploy:
       - sha512.txt
     on:
       tags: true
-      condition: "$TRAVIS_TAG =~ ^v[0-9\.]+[a-z]+[0-9]*$"
+      condition: ${TRAVIS_TAG} =~ ^v[0-9\.]+[a-z]+[0-9]*$
 
 after_deploy:
  - 'curl -H "Content-Type: application/json" --data "{\"source_type\": \"Tag\", \"source_name\": \"$TRAVIS_TAG\"}" -X POST $DOCKER_HUB_TRIGGER_URL'
