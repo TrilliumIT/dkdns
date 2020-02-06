@@ -9,7 +9,6 @@ install:
   - go build -o dkdns .
 
 script:
-  - mv $GOPATH/bin/dkdns ./
   - md5sum dkdns > md5.txt
   - sha256sum dkdns > sha256.txt
   - sha512sum dkdns > sha512.txt
