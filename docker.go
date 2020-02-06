@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
+	log "github.com/sirupsen/logrus"
 )
 
 const dockerVersion = "v1.23"

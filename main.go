@@ -6,8 +6,8 @@ import (
 	"strings"
 	"syscall"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -27,59 +27,59 @@ func main() {
 	app.Usage = "Docker Dynamic DNS"
 	app.Version = version
 	app.Flags = []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "debug, d",
 			Usage: "Enable debugging.",
 		},
-		cli.IntFlag{
+		&cli.IntFlag{
 			Name:  "resync, r",
 			Value: 0,
 			Usage: "Periodically resync all containers from docker hosts.",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "domain, dom",
 			Value: "dkdns.",
 			Usage: "Top level domain to serve.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "no-hostname",
 			Usage: "Don't register container hostnames.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "no-containername",
 			Usage: "Don't register container names.",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "listen",
 			Usage: "Address and port to listen on",
 			Value: ":53",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "compress",
 			Usage: "Compress dns replies.",
 		},
-		cli.UintFlag{
+		&cli.UintFlag{
 			Name:  "ttl",
 			Usage: "TTL for dns replies.",
 			Value: 5,
 		},
-		cli.StringSliceFlag{
+		&cli.StringSliceFlag{
 			Name:  "docker-endpoint",
 			Usage: "URL to docker endpoint(s)",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "ca",
 			Usage: "Path to docker CA if using TLS",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "cert",
 			Usage: "Path to docker cert if using TLS",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "key",
 			Usage: "Path to docker key if using TLS",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "no-validate",
 			Usage: "Don't validate ssl connections.",
 		},
@@ -125,7 +125,7 @@ func Run(ctx *cli.Context) error {
 
 	go monDocker(endpoints, ctx.String("ca"), ctx.String("cert"), ctx.String("key"), !ctx.Bool("no-validate"), ctx.Int("resync"))
 
-	sig := make(chan os.Signal)
+	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	s := <-sig
 	log.Infof("Signal (%s) received, stopping\n", s)

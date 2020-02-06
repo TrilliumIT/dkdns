@@ -1,40 +1,18 @@
 language: go
 
 go:
-  - 1.7
+  - 1.13
 
 sudo: required
 
-services:
-  - docker
-
-cache:
-  directories:
-    - vendor
-
-env:
-  global:
-    - GO15VENDOREXPERIMENT=1
-    - GOOS=linux
-
-before_install:
-  - go get github.com/Masterminds/glide
-
 install:
-  - $GOPATH/bin/glide install
-  - go get -t $($GOPATH/bin/glide novendor)
-  - docker run --rm -v "$PWD":/go/src/github.com/TrilliumIT/dkdns -w /go/src/github.com/TrilliumIT/dkdns golang:alpine go build -v -o alpine-dkdns
+  - go build -o dkdns .
 
 script:
-  - sudo chown travis:travis alpine-dkdns
-  - sudo chmod 775 alpine-dkdns
   - mv $GOPATH/bin/dkdns ./
   - md5sum dkdns > md5.txt
-  - md5sum alpine-dkdns >> md5.txt
   - sha256sum dkdns > sha256.txt
-  - sha256sum alpine-dkdns >> sha256.txt
   - sha512sum dkdns > sha512.txt
-  - sha512sum alpine-dkdns >> sha512.txt
   - ls -alh
 
 deploy:
@@ -44,7 +22,6 @@ deploy:
       secure: iUXPjzrh8IFWc0YboWO8OTmHMWbKWrZIGVsxva5SeOdlWZJJJB9lDMNQbZ/CIiVsdFcM6ap2N0RoBCFVNvEOADpEf/PM3GDXhSxROWCEaAAZ/DGoXAWP0EgtXnJIF9FH/Kf+9bswwf72lvXVttgy925DaF5H+lSWBWo5HHwCDI/R9PpjygGLIPMr2wZj4TmdVgKnhZjMrNOOBcV5u2EqKF49j8qa2ty/NWUZDnOjn+OZ+oXHFNiOCjYH5AQtEjEEivaaKmu0lglDtjtqWbEMdZxWKbKcl2oY32s7xnAdy9XjUdWNt+qlc2X40q69Qdq98BINbqMqhdp97IZAq1vhRB5+C4xGPDPSZQmXxTuiPzr4Y9fgQJEnjJB4MW6tToMN3K41CHTFOU8nI18xhbkHnOmVJd5M0YQ4p4n74cU9B0GrrTfGhCQIPv1G4GiK4rz0o0t3JBKdzn0UD1fq6wfJ7v5uCVUvPUkXreR9vBI+lFB1W/9lshfZF3joJmFga1F8ZEmCSTNvTuliijhNNSt3IFVSKcWUlDhmzo1eaU9Y8GaPWNRsASm2T2PWWmlX5Cx1qHvIa5ZRsbr3XBzXn8hMXh7MLaPKGqffehy5R33opJJiY7leMyOGUIcaeSUn50x1To4mtEEtmRtdtfi4t6V309W1b2bz+kkB1X+Dx4dD4Sc=
     file:
       - dkdns
-      - alpine-dkdns
       - md5.txt
       - sha256.txt
       - sha512.txt
@@ -58,13 +35,9 @@ deploy:
       secure: iUXPjzrh8IFWc0YboWO8OTmHMWbKWrZIGVsxva5SeOdlWZJJJB9lDMNQbZ/CIiVsdFcM6ap2N0RoBCFVNvEOADpEf/PM3GDXhSxROWCEaAAZ/DGoXAWP0EgtXnJIF9FH/Kf+9bswwf72lvXVttgy925DaF5H+lSWBWo5HHwCDI/R9PpjygGLIPMr2wZj4TmdVgKnhZjMrNOOBcV5u2EqKF49j8qa2ty/NWUZDnOjn+OZ+oXHFNiOCjYH5AQtEjEEivaaKmu0lglDtjtqWbEMdZxWKbKcl2oY32s7xnAdy9XjUdWNt+qlc2X40q69Qdq98BINbqMqhdp97IZAq1vhRB5+C4xGPDPSZQmXxTuiPzr4Y9fgQJEnjJB4MW6tToMN3K41CHTFOU8nI18xhbkHnOmVJd5M0YQ4p4n74cU9B0GrrTfGhCQIPv1G4GiK4rz0o0t3JBKdzn0UD1fq6wfJ7v5uCVUvPUkXreR9vBI+lFB1W/9lshfZF3joJmFga1F8ZEmCSTNvTuliijhNNSt3IFVSKcWUlDhmzo1eaU9Y8GaPWNRsASm2T2PWWmlX5Cx1qHvIa5ZRsbr3XBzXn8hMXh7MLaPKGqffehy5R33opJJiY7leMyOGUIcaeSUn50x1To4mtEEtmRtdtfi4t6V309W1b2bz+kkB1X+Dx4dD4Sc=
     file:
       - dkdns
-      - alpine-dkdns
       - md5.txt
       - sha256.txt
       - sha512.txt
     on:
       tags: true
       condition: ${TRAVIS_TAG} =~ ^v[0-9\.]+[a-z]+[0-9]*$
-
-after_deploy:
- - 'curl -H "Content-Type: application/json" --data "{\"source_type\": \"Tag\", \"source_name\": \"$TRAVIS_TAG\"}" -X POST $DOCKER_HUB_TRIGGER_URL'

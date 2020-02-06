@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -87,10 +87,10 @@ func fullyQualify(n string) string {
 
 func normalizeName(n string) string {
 	if leftNotaz09 == nil {
-		leftNotaz09 = regexp.MustCompile("^[^a-z0-9]+")
+		leftNotaz09 = regexp.MustCompile(`^[^a-z0-9]+`)
 	}
 	if onlyaz09Dash == nil {
-		onlyaz09Dash = regexp.MustCompile("[^a-z0-9\\-\\.]+")
+		onlyaz09Dash = regexp.MustCompile(`[^a-z0-9\-\.]+`)
 	}
 	n = strings.ToLower(n)
 	n = string(leftNotaz09.ReplaceAllLiteral([]byte(n), []byte{}))
@@ -165,7 +165,10 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	//log.WithField("Response", m).Debug("Sending DNS Response")
-	w.WriteMsg(m)
+	err := w.WriteMsg(m)
+	if err != nil {
+		log.WithError(err).Error("Failed to write DNS message")
+	}
 }
 
 func serve(proto, listen string) {
